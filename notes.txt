@@ -18,3 +18,55 @@ GAMEABOUTSQUARES.Engine
 
 
 x = $('.square')[0].gameObject
+
+
+
+architecture
+ eventpage (compute in separate thread?) + contentscript
+
+
+AI
+iterative deepening
+no backtracking
+using the language stack
+
+initial state
+goal test
+ forall teams: position of square = position of heart
+expand
+ pick a team (cycle depending on level?) number of teams modulo level. fancy for 
+ new state with that team moved, recurse
+ if backtracked pick next team
+ detect when to stop
+
+representation:
+
+fixed:
+heart (circle)
+arrow
+
+changing:
+square
+ position + direction
+
+
+{
+ //fixed part of the problem
+ problem = 
+ {
+ [][]pos; nothing or arrow or team number(=circle)
+ }
+
+ min/max indices to know when to prune (if square outside = prune) -> could be better but who care
+
+ //moving parts of the problem
+ state = 
+ {
+ squares = [{team, pos, dir}, ...];
+ }
+}
+
+
+0..99 = team = goal/circle/heart
+100..103 = direction = arrow
+ = square
