@@ -1,0 +1,20 @@
+GAMEABOUTSQUARES.Conf
+
+GAMEABOUTSQUARES.State
+ load/save/change level
+
+GAMEABOUTSQUARES.Interface
+ misc high level interface manipulation
+
+GAMEABOUTSQUARES.Model
+ addheart, addsquare ?
+ checkwincondition
+ playermove
+ resetlvl
+
+GAMEABOUTSQUARES.Hooks
+
+GAMEABOUTSQUARES.Engine
+
+
+x = $('.square')[0].gameObject
