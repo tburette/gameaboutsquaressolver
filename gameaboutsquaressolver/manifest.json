@@ -1,0 +1,12 @@
+{
+  "manifest_version": 2,
+  "name": "Game About Squares Solver",
+  "version": "1.0",
+  "description": "Help solving levels for the game gameaboutsquares.com",
+  "content_scripts": [
+      {
+	"matches": ["http://gameaboutsquares.com/"],
+	"js": ["jquery-1.11.1.js", "gassolver.js"]
+      }
+    ]
+}
