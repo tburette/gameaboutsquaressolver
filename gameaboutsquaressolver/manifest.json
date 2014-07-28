@@ -6,7 +6,10 @@
   "content_scripts": [
       {
 	"matches": ["http://gameaboutsquares.com/"],
-	"js": ["jquery-1.11.1.js", "gassolver.js"]
+	"js": ["underscore-min.js", "gassolver.js"]
       }
+    ],
+  "web_accessible_resources": [
+      "underscore-min.map"
     ]
 }

@@ -63,10 +63,18 @@ square
  state = 
  {
  squares = [{team, pos, dir}, ...];
+ or squares[team]={pos, dir} ?
+ or pos[][] = {team, dir}
  }
 }
 
 
-0..99 = team = goal/circle/heart
-100..103 = direction = arrow
- = square
+$('.game-object').map(function(){var go = this.gameObject; var ret = {posX: go.posX, posY: go.posY};
+    if(go.constructor == GAMEABOUTSQUARES.Engine.Square) ret.gameObject = {team: go.team, direction: go.action.name};
+    else if(go.core.constructor == GAMEABOUTSQUARES.Engine.Heart) ret.gameObject = go.team;
+    else if(go.constructor == GAMEABOUTSQUARES.Engine.Tile && go.core.constructor == GAMEABOUTSQUARES.Engine.Action) ret.gameObject = go.core.name;
+    return ret; 
+})
+
+
+window.postMessage(x.get(), '*')
