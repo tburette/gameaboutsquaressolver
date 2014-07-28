@@ -1,0 +1,41 @@
+#solver-no-answer
+{
+    background-image: url('gplaypattern.png');
+    height: 100%;
+    khtml-user-select: text;
+    moz-user-select: text;
+    ms-user-select: text;
+    overflow: auto;
+    position: absolute;
+    user-select: text;
+    webkit-touch-callout: text;
+    webkit-user-select: text;
+    width: 100%;
+    z-index: 10;
+}
+#solver-no-answer>div
+{
+    background: rgba(255,255,255,0.5);
+    border: 1px solid rgba(90,89,87,0.29);
+    border-radius: 4px;
+    max-width: 11cm;
+    padding: 20px;
+}
+#solver-no-answer span
+{
+    font-weight: bold;
+}
+#solver-no-answer #frown
+{
+    float: left;
+    font-size: 300%;
+    margin: 27px;
+    moz-transform: rotate(90deg);
+    o-transform: rotate(90deg);
+    transform: rotate(90deg);
+    webkit-transform: rotate(90deg);
+}
+#solver-no-answer-footer {
+font-size: 550%;
+text-align: center;
+}

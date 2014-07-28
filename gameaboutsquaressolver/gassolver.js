@@ -2,8 +2,48 @@
 Content script associated with the page of the game
 */
 
-//TODO split in multiple file AI stuff and page interaction
+//TODO split in multiple file. Separate AI stuff and page interaction
 
+
+function noAnswerFactory(){
+    var div = document.createElement('div');
+    div.id = 'solver-no-answer';
+    div.setAttribute('class', 'invisible');
+    
+    var recenter = document.createElement('div');
+    div.appendChild(recenter);
+    recenter.setAttribute('class', 'recenter');
+    
+    var frown = document.createElement('span');
+    recenter.appendChild(frown);
+    frown.id = 'frown';
+    frown.innerHTML = ':-('
+
+    var p = document.createElement('p');
+    recenter.appendChild(p);
+    p.innerHTML = "Couldn't find an answer";
+
+    var footer = document.createElement('div');
+    footer.id = 'solver-no-answer-footer';
+    recenter.appendChild(footer);
+    
+
+    var button = document.createElement('button');
+    footer.appendChild(button);
+    button.setAttribute('class', 'typcn icon-back');
+
+    button.addEventListener('click', function(){
+	div.setAttribute('class', 'invisible');
+    });
+ 
+    document.body.appendChild(div);
+    return div;
+}
+
+var noAnswerDiv = noAnswerFactory();
+var showNoAnswer = function showNoAnswer(){
+    noAnswerDiv.setAttribute('class', '');
+}
 
 function solveButtonFactory(){
     var button = document.createElement('button');
@@ -12,7 +52,7 @@ function solveButtonFactory(){
     var spanIcon = document.createElement('span');
     button.appendChild(spanIcon);
     spanIcon.setAttribute('class', 'typcn');
-    spanIcon.innerHTML = 'S';
+    spanIcon.innerHTML = '?';
 
 
     var spanText = document.createElement('span');
@@ -34,6 +74,14 @@ Dynamically inject script to execute code in the concept of the web page
 see http://stackoverflow.com/questions/18707341/how-to-access-page-variables-
     from-chrome-extension-background-script and http://stackoverflow.com/questions/3955803/page-variables-in-content-script
 */
+function executeJavascriptInWebpageContext(code){
+	var script = document.createElement('script');
+	script.appendChild(document.createTextNode(code));
+	(document.body || document.head || document.documentElement).appendChild(script);
+	script.remove();
+    
+}
+
 function sendDataOnButtonClick(button){
     var sendGameStateMessage = "\
 window.postMessage($('.game-object').map(function(){var go = this.gameObject; var ret = {posX: go.posX, posY: go.posY};\
@@ -44,11 +92,7 @@ window.postMessage($('.game-object').map(function(){var go = this.gameObject; va
 }).get(), '*')"
 
     button.addEventListener('click', function(){
-	var script = document.createElement('script');
-	script.id = 'solverSendState_7c84b192cc57b2451f2834276f30c050';
-	script.appendChild(document.createTextNode(sendGameStateMessage));
-	(document.body || document.head || document.documentElement).appendChild(script);
-	script.remove();
+	executeJavascriptInWebpageContext(sendGameStateMessage);
     })
 
 };
@@ -58,10 +102,27 @@ addButtonToUI(solveButton);
 sendDataOnButtonClick(solveButton);
 
 
+function executeMoves(moves){
+    var script = "\
+moves = " + JSON.stringify(moves)+";\
+function executeMoves(moves){\
+    var team;\
+    if(moves.length > 0){\
+        team=moves.shift();\
+        GAMEABOUTSQUARES.Model.playerMove($('.square').filter(function(){return this.gameObject.team == team })[0].gameObject);\
+        setTimeout(function(){executeMoves(moves)}, 900);\
+    }\
+}\
+executeMoves(moves);";
+
+    executeJavascriptInWebpageContext(script);
+}
+
+
 /*
 We need to retrieve the state of the game.
 A content script cannot access javascript variables from the page, it can only access its DOM.
-We Use postMessage to retrieve the data. The page send a message with the data and we retrieve it
+We Use postMessage to transfer the data. The page send a message with the data and we retrieve it
 Note that we could retrieve the data by examining the DOM but it would be messier
 see https://developer.chrome.com/extensions/content_scripts#host-page-communication
 */
@@ -72,6 +133,15 @@ window.addEventListener("message", function(event) {
     //but is the current state of the game when we launched the solver
     problem = new ProblemFactory(event.data).createProblem();
     console.log(result=solve(problem));
+    if(result){
+	//remove the last step so we don't automatically jump to the next level?
+	//result.pop();
+	executeMoves(result);
+    }else{
+	//tell the user there is no answer
+	showNoAnswer();
+    }
+
 });
 
 
@@ -162,7 +232,9 @@ Problem.prototype.makeGrid = function makeGrid(max){
     })
 }
 Problem.prototype.objectAt = function objectAt(pos){
-    if(pos.x >= this.objects.length ||
+    if(pos.x < 0 ||
+       pos.y < 0 ||
+       pos.x >= this.objects.length ||
        pos.y >= this.objects[pos.x].length)
 	return null;
     return this.objects[pos.x][pos.y];
@@ -177,10 +249,12 @@ Detect some (but not all) state for which a solution is impossible
 */
 Problem.prototype.unsolvable = function unsolvable(state){
     return _.some(state, function(square){
-	return square.pos.x < this.min.x || 
-	    square.pos.x > this.max.x ||
-	    square.pos.y < this.min.y ||
-	    square.pos.y > this.max.y
+	//could be wrong! a block can be pushed outside by another block 
+	//yet still be oriented to go inward
+	return square.pos.x < this.min.x - 1 || 
+	    square.pos.x > this.max.x + 1 ||
+	    square.pos.y < this.min.y - 1 ||
+	    square.pos.y > this.max.y + 1
     }, this);
 }
 Problem.prototype.cloneState = function cloneState(state){
@@ -238,14 +312,74 @@ Problem.prototype.nextStates = function nextStates(state){
 }
 
 
-//TODO iterative deepening for optimal solution
 function solve(problem){
-    return iterativeDeepening(problem);
+    //return iterativeDeepening(problem);
+    //return bfs(problem);
+    return bfsClosed(problem);
 }
 
+function bfs(problem){
+    return new TreeSearch(problem).search();
+}
+
+function bfsClosed(problem){
+    return new TreeSearch(problem).searchClosed();
+}
+
+
+function TreeSearch(problem){
+    this.problem = problem;
+}
+TreeSearch.prototype.makeSolution = function makeSolution(node){
+    function makeSolutionRec(node){
+	if(node.parent == null)
+	    return [];
+	return makeSolutionRec(node.parent).concat([node.move]);
+    }
+    return makeSolutionRec(node);
+}
+TreeSearch.prototype.search = function search(){
+    var fringe = [];
+    fringe.push({state: this.problem.initialState, parent: null, move: null});
+    while(true){
+	if(fringe.length == 0) return null;
+	var node = fringe.shift();
+	if(this.problem.isGoalState(node.state))
+	   return this.makeSolution(node);
+	fringe = fringe.concat(_.map(this.problem.nextStates(node.state), function(state){state.parent = node; return state;}));
+    }
+}
+/*
+keep a list of all already visited states
+a better name would be GraphSearch
+*/
+function stateToString(state){
+    return _.reduce(state, function(acc, val){return acc + val.pos.x + val.dir[0] + val.pos.y + val.team + "|"}, "");
+}
+TreeSearch.prototype.searchClosed = function searchClosed(){
+    var closed = {};
+    var fringe = [];
+    fringe.push({state: this.problem.initialState, parent: null, move: null});
+    while(true){
+	if(fringe.length == 0) return null;
+	var node = fringe.shift();
+	if(this.problem.isGoalState(node.state))
+	   return this.makeSolution(node);
+	var stateString = stateToString(node.state);
+	if(!closed[stateString]){
+	    closed[stateString] = true;
+	    fringe = fringe.concat(_.map(this.problem.nextStates(node.state), function(state){state.parent = node; return state;}));
+	}
+    }
+}
+
+
 function iterativeDeepening(problem){
-    for(var maxDepth = 0;;maxDepth++){
-	var result = new DepthLimitedSearch(problem, maxDepth).search();
+    //don't go deeper than MAX_DEPTH moves to avoid burning CPU
+    //We could let the iterative deepening algorithm work until it exhausts all possible moves
+    var MAX_DEPTH = 10;
+    for(var depthLimit = 0;depthLimit<MAX_DEPTH;depthLimit++){
+	var result = new DepthLimitedSearch(problem, depthLimit).search();
 	if(result !== DepthLimitedSearch.cutoff) {
 	    //answer or no result
 	    return result;

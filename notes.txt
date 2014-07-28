@@ -78,3 +78,23 @@ $('.game-object').map(function(){var go = this.gameObject; var ret = {posX: go.p
 
 
 window.postMessage(x.get(), '*')
+
+
+GAMEABOUTSQUARES.Model.playerMove($('.square').filter(function(e){return this.gameObject.team==2})[0].gameObject)
+
+$.each([1, 1, 1, 2, 1, 1, 1] , function(index, team){GAMEABOUTSQUARES.Model.playerMove($('.square').filter(function(){return this.gameObject.team == team })[0].gameObject)})
+
+
+moves = [0, 0, 0, 2, 2, 1, 1, 1] 
+function executeMoves(moves){
+    var team;
+    if(moves.length > 0){
+        team=moves.shift();
+        GAMEABOUTSQUARES.Model.playerMove($('.square').filter(function(){return this.gameObject.team == team })[0].gameObject);
+        setTimeout(function(){executeMoves(moves)}, 500);
+    }
+}
+executeMoves(moves)
+	
+
+setTimeout(function(){alert('x')}, 0)
