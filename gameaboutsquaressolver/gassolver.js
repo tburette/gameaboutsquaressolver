@@ -2,9 +2,59 @@
 Content script associated with the page of the game
 */
 
+//TODO split in multiple file AI stuff and page interaction
 //TODO button
 //TODO when click button create dynmically script that that post the data for us
 //   see http://stackoverflow.com/questions/18707341/how-to-access-page-variables-from-chrome-extension-background-script and http://stackoverflow.com/questions/3955803/page-variables-in-content-script
+
+
+function solveButtonFactory(){
+    var button = document.createElement('button');
+    button.id = 'solver-btn';
+
+    var spanIcon = document.createElement('span');
+    button.appendChild(spanIcon);
+    spanIcon.setAttribute('class', 'typcn');
+    spanIcon.innerHTML = 'S';
+
+
+    var spanText = document.createElement('span');
+    button.appendChild(spanText);
+    spanText.setAttribute('class', 'ctrl-text');
+    spanText.innerHTML = 'solve';
+
+    return button;
+}
+
+function addButtonToUI(button){
+    var li = document.createElement('li');
+    li.appendChild(button);
+    document.getElementsByClassName('main-btns')[0].appendChild(li);
+}
+
+function sendDataOnButtonClick(button){
+    var sendGameStateMessage = "\
+window.postMessage($('.game-object').map(function(){var go = this.gameObject; var ret = {posX: go.posX, posY: go.posY};\
+    if(go.constructor == GAMEABOUTSQUARES.Engine.Square) ret.gameObject = {team: go.team, direction: go.action.name};\
+    else if(go.core.constructor == GAMEABOUTSQUARES.Engine.Heart) ret.gameObject = go.team;\
+    else if(go.constructor == GAMEABOUTSQUARES.Engine.Tile && go.core.constructor == GAMEABOUTSQUARES.Engine.Action) ret.gameObject = go.core.name;\
+    return ret;\
+}).get(), '*')"
+
+    button.addEventListener('click', function(){
+	var script = document.createElement('script');
+	script.id = 'solverSendState_7c84b192cc57b2451f2834276f30c050';
+	script.appendChild(document.createTextNode(sendGameStateMessage));
+	(document.body || document.head || document.documentElement).appendChild(script);
+	script.remove();
+    })
+
+};
+
+var solveButton = solveButtonFactory();
+addButtonToUI(solveButton);
+sendDataOnButtonClick(solveButton);
+
 
 /*
 We need to retrieve the state of the game.
