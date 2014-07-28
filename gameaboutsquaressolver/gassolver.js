@@ -3,9 +3,6 @@ Content script associated with the page of the game
 */
 
 //TODO split in multiple file AI stuff and page interaction
-//TODO button
-//TODO when click button create dynmically script that that post the data for us
-//   see http://stackoverflow.com/questions/18707341/how-to-access-page-variables-from-chrome-extension-background-script and http://stackoverflow.com/questions/3955803/page-variables-in-content-script
 
 
 function solveButtonFactory(){
@@ -32,6 +29,11 @@ function addButtonToUI(button){
     document.getElementsByClassName('main-btns')[0].appendChild(li);
 }
 
+/*
+Dynamically inject script to execute code in the concept of the web page
+see http://stackoverflow.com/questions/18707341/how-to-access-page-variables-
+    from-chrome-extension-background-script and http://stackoverflow.com/questions/3955803/page-variables-in-content-script
+*/
 function sendDataOnButtonClick(button){
     var sendGameStateMessage = "\
 window.postMessage($('.game-object').map(function(){var go = this.gameObject; var ret = {posX: go.posX, posY: go.posY};\
