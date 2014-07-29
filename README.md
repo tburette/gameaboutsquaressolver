@@ -23,3 +23,4 @@ Possible Improvements to solve all levels
 * reducing the state space collapsing multiple moves into a single one.
 * informed search to steer towards more promising states. I wouldn't be suprised if a good heuristic were to allow solving all the levels. Eg. a good old A*
 * searching starting from the result and moving backward towards the initial state
+* informed search with DFS
