@@ -19,8 +19,13 @@ To avoid visiting again and again the same states I augmented the BFS algorithm 
 
 Possible Improvements to solve all levels
 ===
-* more agressive pruning by detecting unsolvable states.
+* more agressive pruning by detecting more unsolvable states.
 * reducing the state space collapsing multiple moves into a single one.
-* informed search to steer towards more promising states. I wouldn't be suprised if a good heuristic were to allow solving all the levels. Eg. a good old A*
-* searching starting from the result and moving backward towards the initial state
-* informed search with DFS
+* informed search to steer towards more promising states. I wouldn't be suprised if a good heuristic were to allow solving all the levels using a simple BFS/DFS with memory of previously visited states.
+* searching starting from the result and moving backward towards the initial state (?)
+* use delayed duplicate detection
+* reduce state to a single number.  
+  The state = position and direction of each square.  
+  4 directions (2 bits) + 32 x coordinate (5 bits) + 32 y coordinate (5 bits) = 12 bits for the state of one square  
+  knowing that a javascript number is 64 bits. This allows to store a 5 squares state in a single number
+   
