@@ -11,7 +11,7 @@
       {
 	"matches": ["http://gameaboutsquares.com/"],
 	"css": ["noanswer.css"],
-	"js": ["underscore-min.js", "gassolver.js"]
+	"js": ["underscore-min.js", "gassolver.js", "gasextension.js"]
       }
     ],
   "web_accessible_resources": [
