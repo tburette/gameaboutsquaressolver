@@ -110,7 +110,7 @@ function executeMoves(moves){\
     if(moves.length > 0){\
         team=moves.shift();\
         GAMEABOUTSQUARES.Model.playerMove($('.square').filter(function(){return this.gameObject.team == team })[0].gameObject);\
-        setTimeout(function(){executeMoves(moves)}, 900);\
+        setTimeout(function(){executeMoves(moves)}, 800);\
     }\
 }\
 executeMoves(moves);";
@@ -258,10 +258,22 @@ Problem.prototype.unsolvable = function unsolvable(state){
     }, this);
 }
 Problem.prototype.cloneState = function cloneState(state){
-    return _.map(state, function(square){
+    //Optimized because profiler says lot of CPU time here
+    var newState = new Array(state.length);
+    for(var i = 0; i < state.length; i++){
+	newState[i] = {
+	    pos: state[i].pos,
+	    team: state[i].team,
+	    dir: state[i].dir
+	};
+    }
+    return newState;
+
+/*    return _.map(state, function(square){
 	//shallow copy, pos object shared
 	return _.clone(square);
     });
+*/
 }
 Problem.prototype.squareOfTeam = function squareOfTeam(state, team){
     return _.find(state, function(square){
@@ -272,9 +284,15 @@ Problem.prototype.squareOfTeam = function squareOfTeam(state, team){
 return undefined if not found
 */
 Problem.prototype.squareAtPos = function squareAtPos(state, pos){
-    return _.find(state, function(square){
+    //Optimized because profiler says lot of CPU time here
+    for(var i = 0; i < state.length;i++){
+	if(state[i].pos.x == pos.x && state[i].pos.y == pos.y) return state[i];
+    }
+    return null;
+/*    return _.find(state, function(square){
 	return _.isEqual(square.pos, pos);
     });
+*/
 
 }
 /*
@@ -349,27 +367,91 @@ TreeSearch.prototype.search = function search(){
 	fringe = fringe.concat(_.map(this.problem.nextStates(node.state), function(state){state.parent = node; return state;}));
     }
 }
+function stateToString(state){
+    return _.reduce(state, function(acc, val){return acc + val.pos.x + val.dir[0] + val.pos.y + val.team + "|"}, "");
+}
 /*
 keep a list of all already visited states
 a better name would be GraphSearch
 */
-function stateToString(state){
-    return _.reduce(state, function(acc, val){return acc + val.pos.x + val.dir[0] + val.pos.y + val.team + "|"}, "");
+function concat(fringe, problem, node){
+    //Optimized because profiler says lot of CPU time here
+    var newStates = problem.nextStates(node.state);
+    for(var i = 0; i < newStates.length;i++){
+	var state = newStates[i];
+	state.parent = node;
+	fringe.push(state);
+    }
+
+    //return fringe.concat(_.map(problem.nextStates(node.state), function(state){state.parent = node; return state;}));
 }
+
+function shift(fringe){
+    return fringe.shift();
+}
+
+/*
+Faster on large sizes than doing push() and shift() (in chrome 37.0.2062)
+Breaks once we reach 2^53 (max contiguous int that can fit in a Number)
+*/
+function Queue(){
+    var queue = [];
+    var queueStart = 0;
+    var queueEnd = 0;
+    
+    this.isEmpty = function isEmpty(){
+	return queueStart == queueEnd;
+    };
+    this.length = function length(){
+	return queueEnd - queueStart;
+    };
+    this.add = function add(value){
+	queue[queueEnd++] = value;
+    };
+    this.remove = function remove(){
+	if(this.isEmpty()) throw new RangeError("empty");
+	return queue[queueStart++];
+    };
+}
+
 TreeSearch.prototype.searchClosed = function searchClosed(){
+
+//debug vars
+var i = -1;
+var closedCount = 0;
+var dups = 0;
+var start = new Date().getTime();
+
     var closed = {};
-    var fringe = [];
-    fringe.push({state: this.problem.initialState, parent: null, move: null});
+    var fringe = new Queue();
+    fringe.add({state: this.problem.initialState, parent: null, move: null});
     while(true){
-	if(fringe.length == 0) return null;
-	var node = fringe.shift();
+
+//debug
+i++;
+if(i % 5000 == 0){
+    var time = new Date().getTime() - start;
+    console.log(time/1000 + " " + i + " closed " + closedCount + " dups " + dups + " fringe " + fringe.length());
+}
+
+	if(fringe.isEmpty()) return null;
+	var node = fringe.remove();
 	if(this.problem.isGoalState(node.state))
 	   return this.makeSolution(node);
 	var stateString = stateToString(node.state);
 	if(!closed[stateString]){
 	    closed[stateString] = true;
-	    fringe = fringe.concat(_.map(this.problem.nextStates(node.state), function(state){state.parent = node; return state;}));
-	}
+closedCount++;//debug
+	    //Optimized because profiler says lot of CPU time here	    
+	    var newStates = this.problem.nextStates(node.state);
+	    for(var idx = 0; idx < newStates.length;idx++){
+		var state = newStates[idx];
+		state.parent = node;
+		fringe.add(state);
+	    }
+
+	}else
+dups++;//debug
     }
 }
 
@@ -409,7 +491,6 @@ Return null if no solution exist
        undefined if the search was stopped due to depth limit
        a solution in the form of an array of move to perform
 */
-
 DepthLimitedSearch.prototype.searchRec = function searchRec(state, move, depth){
     //i++;
     //console.log(state[0].team + " " + state[0].dir + " " + state[0].pos.x + 
