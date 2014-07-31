@@ -128,11 +128,6 @@ Problem.prototype.cloneState = function cloneState(state){
     });
 */
 }
-Problem.prototype.squareOfTeam = function squareOfTeam(state, team){
-    return _.find(state, function(square){
-	return square.team === team;
-    });
-}
 /*
 return undefined if not found
 */
@@ -220,27 +215,9 @@ TreeSearch.prototype.search = function search(){
 	fringe = fringe.concat(_.map(this.problem.nextStates(node.state), function(state){state.parent = node; return state;}));
     }
 }
+
 function stateToString(state){
     return _.reduce(state, function(acc, val){return acc + val.pos.x + val.dir[0] + val.pos.y + val.team + "|"}, "");
-}
-/*
-keep a list of all already visited states
-a better name would be GraphSearch
-*/
-function concat(fringe, problem, node){
-    //Optimized because profiler says lot of CPU time here
-    var newStates = problem.nextStates(node.state);
-    for(var i = 0; i < newStates.length;i++){
-	var state = newStates[i];
-	state.parent = node;
-	fringe.push(state);
-    }
-
-    //return fringe.concat(_.map(problem.nextStates(node.state), function(state){state.parent = node; return state;}));
-}
-
-function shift(fringe){
-    return fringe.shift();
 }
 
 /*
@@ -267,6 +244,10 @@ function Queue(){
     };
 }
 
+/*
+keep a list of all already visited states
+a better name would be GraphSearch
+*/
 TreeSearch.prototype.searchClosed = function searchClosed(){
 
 //debug vars
@@ -278,6 +259,7 @@ var start = new Date().getTime();
     var closed = {};
     var fringe = new Queue();
     fringe.add({state: this.problem.initialState, parent: null, move: null});
+    fringe.add({step:1});
     while(true){
 
 //debug
@@ -289,6 +271,11 @@ if(i % 5000 == 0){
 
 	if(fringe.isEmpty()) return null;
 	var node = fringe.remove();
+	if(node.step){
+	    console.log("step " + node.step);
+	    fringe.add({step: node.step + 1});
+	    continue;
+	}
 	if(this.problem.isGoalState(node.state))
 	   return this.makeSolution(node);
 	var stateString = stateToString(node.state);
