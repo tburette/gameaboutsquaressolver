@@ -102,7 +102,7 @@ Detect some (but not all) state for which a solution is impossible
 */
 Problem.prototype.unsolvable = function unsolvable(state){
     return _.some(state, function(square){
-	//could be wrong! a block can be pushed outside by another block 
+	//TODO could be wrong! a block can be pushed outside by another block 
 	//yet still be oriented to go inward
 	return square.pos.x < this.min.x - 1 || 
 	    square.pos.x > this.max.x + 1 ||
@@ -141,7 +141,7 @@ Problem.prototype.squareAtPos = function squareAtPos(state, pos){
     for(var i = 0; i < state.length;i++){
 	if(state[i].pos.x == pos.x && state[i].pos.y == pos.y) return state[i];
     }
-    return null;
+    return undefined;
 /*    return _.find(state, function(square){
 	return _.isEqual(square.pos, pos);
     });
