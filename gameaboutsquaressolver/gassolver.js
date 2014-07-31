@@ -63,6 +63,8 @@ ProblemFactory.prototype.createProblem = function createProblem(){
 
 
 //TODO create a state class a move all relevant code to it
+//TODO too many objects to represent a state. refactor
+//     less objects, direction as int, pos as member
 
 /*
 Data necessary to define the Problem to be solved
@@ -180,8 +182,8 @@ Problem.prototype.nextStates = function nextStates(state){
 
 function solve(problem){
     //return iterativeDeepening(problem);
-    //return bfs(problem);
-    return bfsClosed(problem);
+    return bfs(problem);
+    //return bfsClosed(problem);
 }
 
 function bfs(problem){
@@ -299,7 +301,7 @@ dups++;//debug
 function iterativeDeepening(problem){
     //don't go deeper than MAX_DEPTH moves to avoid burning CPU
     //We could let the iterative deepening algorithm work until it exhausts all possible moves
-    var MAX_DEPTH = 10;
+    var MAX_DEPTH = 99;
     for(var depthLimit = 0;depthLimit<MAX_DEPTH;depthLimit++){
 	var result = new DepthLimitedSearch(problem, depthLimit).search();
 	if(result !== DepthLimitedSearch.cutoff) {
