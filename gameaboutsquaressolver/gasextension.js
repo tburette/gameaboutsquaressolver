@@ -191,6 +191,7 @@ window.addEventListener("message", function(event) {
 		 }, 
 		 function finished(result){
 		     //must free reference to AI stuff, there could be a lot of memory used!
+		     solver = null;
 		     messageUI.setEventClosedListener(null);
 		     messageUI.hide();
 
@@ -207,6 +208,7 @@ window.addEventListener("message", function(event) {
     messageUI.setEventClosedListener(function (){
 	solver.cancelSearch();
 	//must free reference to AI stuff, there could be a lot of memory used!
+	solver = null;
 	messageUI.setEventClosedListener(null);
     });
 
