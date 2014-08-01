@@ -115,6 +115,7 @@ function executeJavascriptInWebpageContext(code){
 }
 
 function sendDataOnButtonClick(button){
+    //only use primitive types.
     var sendGameStateMessage = "\
 window.postMessage($('.game-object').map(function(){var go = this.gameObject; var ret = {posX: go.posX, posY: go.posY};\
     if(go.constructor == GAMEABOUTSQUARES.Engine.Square) ret.gameObject = {team: go.team, direction: go.action.name};\
@@ -135,6 +136,7 @@ sendDataOnButtonClick(solveButton);
 
 
 function stopExecutingMovesOnResetOrLevelSelect(){
+    //hijack game's internal events
     script = "\
 (function closure(){\
     var onLvlSelect = GAMEABOUTSQUARES.Hooks.onLvlSelect;\
