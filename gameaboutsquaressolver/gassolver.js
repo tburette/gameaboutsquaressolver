@@ -356,25 +356,6 @@ GraphSearch.prototype.makeSolution = function makeSolution(node){
 }
 
 /*
-DEBUG
-0=red
-1=blue
-2=dark
-*/
-GraphSearch.prototype.isSolution = function isSolution(node){
-//    return _.every([0, 1, 2, 2, 2, 1, 1, 0, 2, 1, 0, 2, 0, 2, 1, 1, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0], 
-      return _.every(                                       [2, 1, 1, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, null], 
-		   function(x){
-		       var team = node.move;
-		       node = node.parent;
-		       //triple === because if a initialState team is null
-		       //yet there are still moves to check
-		       return x === team;
-		   }, 
-		   this);
-}
-var stateStr = "0d40|2u52|1d41|";
-/*
 keep a list of all already visited states
 */
 GraphSearch.prototype.search = function search(){
@@ -409,8 +390,6 @@ GraphSearch.prototype.search = function search(){
 	    return;
 	}
 	var stateString = stateToString(node.state);
-	if(stateString == stateStr)
-	    debugger;
 	if(!this.closed[stateString]){
 	    this.closed[stateString] = true;
 
