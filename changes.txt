@@ -1,0 +1,6 @@
+-fixing bug preventing discovery of the solution (there can be elements at a negative index in the starting state)
+-make the UI responsive by regularly giving control back to the UI
+-stop executing moves if change level or rewind
+-waiting screen while solver is running
+-update waiting screen regularly. Display message explaining search status
+-stop search when closing waiting screen

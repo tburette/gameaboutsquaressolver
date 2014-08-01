@@ -1,3 +1,6 @@
+/*
+AI code of the extension
+*/
 function Point(x, y){
     this.x = x;
     this.y = y;
@@ -87,12 +90,14 @@ Problem.prototype.makeGrid = function makeGrid(max){
     })
 }
 Problem.prototype.objectAt = function objectAt(pos){
-    if(pos.x < 0 ||
-       pos.y < 0 ||
-       pos.x >= this.objects.length ||
-       pos.y >= this.objects[pos.x].length)
+    /*
+    if(pos.x < this.min.x ||
+       pos.x > this.max.x ||
+       pos.y < this.min.y ||
+       pos.y > this.max.y)
 	return null;
-    return this.objects[pos.x][pos.y];
+     */
+    return this.objects[pos.x] && this.objects[pos.x][pos.y];
 }
 Problem.prototype.isGoalState = function isGoalState(state){
     return _.every(state, function(square){
@@ -179,19 +184,25 @@ Problem.prototype.nextStates = function nextStates(state){
     }, this);
 }
 
-
-function solve(problem){
+/*
+updateCallback is called regularly with a string parameter stating the search progress.
+After the call to the callback, execution of the search algorithm will stop briefly
+to allow he UI to work and will automatically resume (with setTimeout)
+*/
+function solve(problem, updateCallback, finishedCallback){
     //return iterativeDeepening(problem);
-    return bfs(problem);
-    //return bfsClosed(problem);
+    //return bfs(problem);
+    return bfsClosed(problem, updateCallback, finishedCallback);
 }
 
 function bfs(problem){
     return new TreeSearch(problem).search();
 }
 
-function bfsClosed(problem){
-    return new TreeSearch(problem).searchClosed();
+function bfsClosed(problem, updateCallback, finishedCallback){
+    var gs= new GraphSearch(problem, updateCallback, finishedCallback);
+    gs.search();
+    return gs;
 }
 
 
@@ -246,54 +257,147 @@ function Queue(){
     };
 }
 
-/*
-keep a list of all already visited states
-a better name would be GraphSearch
-*/
-TreeSearch.prototype.searchClosed = function searchClosed(){
+function GraphSearch(problem, updateCallback, finishedCallback){
+    this.problem = problem;
+    this.iterations = 0;
+    this.closed = {};
+    this.fringe = new Queue();
+    this.fringe.add({state: this.problem.initialState, parent: null, move: null});
 
-//debug vars
-var i = -1;
-var closedCount = 0;
-var dups = 0;
-var start = new Date().getTime();
+    //count how many level of the search tree we have explored
+    //= we have tried all possible combinations of 'level' moves or fewer
+    this.level = 0;
+    this.fringe.add({level:this.level});
 
-    var closed = {};
-    var fringe = new Queue();
-    fringe.add({state: this.problem.initialState, parent: null, move: null});
-    fringe.add({step:1});
-    while(true){
+    this.updateCallback = updateCallback;
+    this.updateDelayMS = 500;
+    this.finishedCallback = finishedCallback;
+    this.mustCancelSearch = false;
 
-//debug
-i++;
-if(i % 5000 == 0){
-    var time = new Date().getTime() - start;
-    console.log(time/1000 + " " + i + " closed " + closedCount + " dups " + dups + " fringe " + fringe.length());
+    //debug vars
+    this.closedCount = 0;
+    this.dups = 0;
+    this.start = new Date().getTime();    
 }
 
-	if(fringe.isEmpty()) return null;
-	var node = fringe.remove();
-	if(node.step){
-	    console.log("step " + node.step);
-	    fringe.add({step: node.step + 1});
+/*
+To be called from outside to stop the search
+*/
+GraphSearch.prototype.cancelSearch = function cancelSearch(){
+    this.mustCancelSearch = true;
+}
+
+var ITERATIONS_BEFORE_CHECKING_FOR_UPDATE = 1000;
+/*
+ Return true if we must yield execution
+*/
+GraphSearch.prototype.checkUpdateCallback = function checkUpdateCallback(){
+    if(!this.updateTimeStart){
+	this.updateTimeStart = new Date().getTime();
+	//to avoid creating a new Date object on each call, we use an 
+	//increasing number to only check every X call
+	this.updateIterations = 1;	
+    }else if(this.updateIterations % ITERATIONS_BEFORE_CHECKING_FOR_UPDATE == 0){
+	if(new Date().getTime() - this.updateTimeStart > this.updateDelayMS){
+
+	    delete this.updateTimeStart;
+	    //this is a user function, anything can happen. 
+	    //shouldn't we catch exceptions?
+	    this.updateCallback(this.getProgress());
+	    return true;
+	}
+    }else
+	this.updateIterations++;
+    return false;
+}
+
+GraphSearch.prototype.getProgress = function getProgress(){
+    return "Tried all solutions in " + this.level + " moves or less. " +
+	this.iterations + " moves performed";
+}
+
+GraphSearch.prototype.makeSolution = function makeSolution(node){
+    function makeSolutionRec(node){
+	if(node.parent == null)
+	    return [];
+	return makeSolutionRec(node.parent).concat([node.move]);
+    }
+    return makeSolutionRec(node);
+}
+
+/*
+DEBUG
+0=red
+1=blue
+2=dark
+*/
+GraphSearch.prototype.isSolution = function isSolution(node){
+//    return _.every([0, 1, 2, 2, 2, 1, 1, 0, 2, 1, 0, 2, 0, 2, 1, 1, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0], 
+      return _.every(                                       [2, 1, 1, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, null], 
+		   function(x){
+		       var team = node.move;
+		       node = node.parent;
+		       //triple === because if a initialState team is null
+		       //yet there are still moves to check
+		       return x === team;
+		   }, 
+		   this);
+}
+var stateStr = "0d40|2u52|1d41|";
+/*
+keep a list of all already visited states
+*/
+GraphSearch.prototype.search = function search(){
+    while(true){
+	this.iterations++;
+	if(this.mustCancelSearch)
+	    return;
+	if(this.checkUpdateCallback()){
+	    var that = this;
+	    setTimeout(function(){that.search()}, 1);
+	    return;
+	}
+	if(this.iterations % 5000 == 0){
+	    var time = new Date().getTime() - this.start;
+	    console.log(time/1000 + " " + this.iterations + " closed " + this.closedCount + 
+			" dups " + this.dups + " fringe " + this.fringe.length());
+	}
+
+	if(this.fringe.isEmpty()){
+	    this.finishedCallback(null);
+	    return;
+	}
+	var node = this.fringe.remove();
+
+	if(node.hasOwnProperty('level')){
+            this.level = node.level;
+	    console.log("level " + this.level);
+	    this.fringe.add({level: this.level + 1});
 	    continue;
 	}
-	if(this.problem.isGoalState(node.state))
-	   return this.makeSolution(node);
+	
+	if(this.problem.isGoalState(node.state)){
+	    this.finishedCallback(this.makeSolution(node));
+	    return;
+	}
 	var stateString = stateToString(node.state);
-	if(!closed[stateString]){
-	    closed[stateString] = true;
-closedCount++;//debug
+	if(stateString == stateStr)
+	    debugger;
+	if(!this.closed[stateString]){
+	    this.closed[stateString] = true;
+
+	    this.closedCount++;//debug
+
 	    //Optimized because profiler says lot of CPU time here	    
 	    var newStates = this.problem.nextStates(node.state);
 	    for(var idx = 0; idx < newStates.length;idx++){
 		var state = newStates[idx];
 		state.parent = node;
-		fringe.add(state);
+		this.fringe.add(state);
 	    }
 
 	}else
-dups++;//debug
+	    this.dups++;//debug
     }
 }
 

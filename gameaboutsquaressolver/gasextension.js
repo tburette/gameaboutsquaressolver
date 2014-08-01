@@ -2,10 +2,20 @@
 Content script associated with the page of the game
 */
 
+/*
+Allow the displaying of a message overlayed on the game
+*/
+function SolverMessage(){
+    var displayElements = this.messageDisplayFactory();
+    this.div = displayElements.div;
+    this.text = displayElements.text;
+    this.button = displayElements.button;
+    this.frown = displayElements.frown;
+}
 
-function noAnswerFactory(){
+SolverMessage.prototype.messageDisplayFactory= function messageDisplayFactory(){
     var div = document.createElement('div');
-    div.id = 'solver-no-answer';
+    div.id = 'solver-message';
     div.setAttribute('class', 'invisible');
     
     var recenter = document.createElement('div');
@@ -15,33 +25,57 @@ function noAnswerFactory(){
     var frown = document.createElement('span');
     recenter.appendChild(frown);
     frown.id = 'frown';
-    frown.innerHTML = ':-('
+    frown.innerHTML = ':-(';
+    frown.setAttribute('class', 'invisible');
 
     var p = document.createElement('p');
     recenter.appendChild(p);
-    p.innerHTML = "Couldn't find an answer";
+    p.id = 'solver-message-text';
+    p.innerHTML = "";
 
     var footer = document.createElement('div');
-    footer.id = 'solver-no-answer-footer';
+    footer.id = 'solver-message-footer';
     recenter.appendChild(footer);
-    
 
     var button = document.createElement('button');
     footer.appendChild(button);
     button.setAttribute('class', 'typcn icon-back');
 
+    var that = this;
     button.addEventListener('click', function(){
 	div.setAttribute('class', 'invisible');
+	if(that.callbackClosed)
+	    that.callbackClosed(that);
     });
  
     document.body.appendChild(div);
-    return div;
+    return {div: div, 
+	    text: p,
+	    button: button,
+	    frown: frown
+	   };
 }
 
-var noAnswerDiv = noAnswerFactory();
-var showNoAnswer = function showNoAnswer(){
-    noAnswerDiv.setAttribute('class', '');
+SolverMessage.prototype.show = function show(){
+    this.div.setAttribute('class', '');
 }
+
+SolverMessage.prototype.hide = function hide(){
+    this.div.setAttribute('class', 'invisible');
+}
+
+SolverMessage.prototype.setMessage = function setMessage(message, frown){
+    this.text.innerHTML = message;
+    if(frown)
+	this.frown.setAttribute('class', '');
+    else
+	this.frown.setAttribute('class', 'invisible');
+}
+
+SolverMessage.prototype.setEventClosedListener = function setEventClosedListener(callback){
+    this.callbackClosed = callback;
+}
+
 
 function solveButtonFactory(){
     var button = document.createElement('button');
@@ -100,6 +134,25 @@ addButtonToUI(solveButton);
 sendDataOnButtonClick(solveButton);
 
 
+function stopExecutingMovesOnResetOrLevelSelect(){
+    script = "\
+(function closure(){\
+    var onLvlSelect = GAMEABOUTSQUARES.Hooks.onLvlSelect;\
+    GAMEABOUTSQUARES.Hooks.onLvlSelect = function(){\
+	executeMoves = function(){};\
+	onLvlSelect(undefined, Array.prototype.slice.apply(arguments));\
+    };\
+    var onLevelStart = GAMEABOUTSQUARES.Hooks.onLevelStart;\
+    GAMEABOUTSQUARES.Hooks.onLevelStart = function(){\
+	executeMoves = function(){};\
+	onLevelStart(undefined, Array.prototype.slice.apply(arguments));\
+    }\
+})()";
+    executeJavascriptInWebpageContext(script);
+}
+
+stopExecutingMovesOnResetOrLevelSelect();
+
 function executeMoves(moves){
     var script = "\
 moves = " + JSON.stringify(moves)+";\
@@ -116,7 +169,6 @@ executeMoves(moves);";
     executeJavascriptInWebpageContext(script);
 }
 
-
 /*
 We need to retrieve the state of the game.
 A content script cannot access javascript variables from the page, it can only access its DOM.
@@ -127,18 +179,36 @@ see https://developer.chrome.com/extensions/content_scripts#host-page-communicat
 window.addEventListener("message", function(event) {
     if(event.source != window)
 	return;
-    //the initial state of the problem is not (necessary) the initial state of the puzzle 
-    //but is the current state of the game when we launched the solver
-    problem = new ProblemFactory(event.data).createProblem();
-    console.log(result=solve(problem));
-    if(result){
-	//remove the last step so we don't automatically jump to the next level?
-	//result.pop();
-	executeMoves(result);
-    }else{
-	//tell the user there is no answer
-	showNoAnswer();
-    }
+    var messageUI = new SolverMessage();
+    //the initial state of the problem represented by event.data is not 
+    //(necessary) the initial state of the puzzle but is the current state of 
+    //the game when the user launched the solver
+    var problem = new ProblemFactory(event.data).createProblem();
+    messageUI.show("Searching...");
+    var solver = solve(problem, 
+		 function progressUpdateUI(message){
+		     messageUI.setMessage(message);
+		 }, 
+		 function finished(result){
+		     //must free reference to AI stuff, there could be a lot of memory used!
+		     messageUI.setEventClosedListener(null);
+		     messageUI.hide();
+
+		     if(result){
+			 //remove the last step so we don't automatically jump to the next level?
+			 //result.pop();
+			 executeMoves(result);
+		     }else{
+			 //tell the user there is no answer
+			 messageUI.setMessage("Couldn't find an answer", true);
+		     }
+		 });
+    
+    messageUI.setEventClosedListener(function (){
+	solver.cancelSearch();
+	//must free reference to AI stuff, there could be a lot of memory used!
+	messageUI.setEventClosedListener(null);
+    });
 
 });
 

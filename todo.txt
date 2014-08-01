@@ -1,0 +1,13 @@
+-refactor ugly solver code
+-make DFS and the other BFS work again (yielding search like GraphSearch)
+-precompute known levels solutions
+-add pruning back? (compare perfs)
+-reduce memory footprint of state objects
+-don't upload stats when used solver
+
+-fix bug where solver would not find solutions. (elements at negative indexes)
+-stop executing solution moves if change level or reset blocks
+-make the UI responsive by regularly giving control back to the UI
+-waiting screen
+-update waiting screen regularly. Display current status of the search
+-stop search when closing waiting screen
