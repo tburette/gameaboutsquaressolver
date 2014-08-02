@@ -328,9 +328,9 @@ function GraphSearch(problem, updateCallback, finishedCallback){
 	function(){that.search();});
 
     //debug vars
-    this.closedCount = 0;
-    this.dups = 0;
-    this.start = new Date().getTime();    
+    //this.closedCount = 0;
+    //this.dups = 0;
+    //this.start = new Date().getTime();    
 }
 
 /*
@@ -366,11 +366,13 @@ GraphSearch.prototype.search = function search(){
 	if(this.mustYieldAndUpdate()){
 	    return;
 	}
-	if(this.iterations % 5000 == 0){
-	    var time = new Date().getTime() - this.start;
-	    console.log(time/1000 + " " + this.iterations + " closed " + this.closedCount + 
-			" dups " + this.dups + " fringe " + this.fringe.length());
-	}
+
+	//debug
+	//if(this.iterations % 5000 == 0){
+	//    var time = new Date().getTime() - this.start;
+	//    console.log(time/1000 + " " + this.iterations + " closed " + this.closedCount + 
+	//		" dups " + this.dups + " fringe " + this.fringe.length());
+	//}
 
 	if(this.fringe.isEmpty()){
 	    this.finishedCallback(null);
@@ -380,7 +382,7 @@ GraphSearch.prototype.search = function search(){
 
 	if(node.hasOwnProperty('level')){
             this.level = node.level;
-	    console.log("level " + this.level);
+	    //console.log("level " + this.level);
 	    this.fringe.add({level: this.level + 1});
 	    continue;
 	}
@@ -393,7 +395,7 @@ GraphSearch.prototype.search = function search(){
 	if(!this.closed[stateString]){
 	    this.closed[stateString] = true;
 
-	    this.closedCount++;//debug
+	    //this.closedCount++;//debug
 
 	    //Optimized because profiler says lot of CPU time here	    
 	    var newStates = this.problem.nextStates(node.state);
@@ -403,8 +405,8 @@ GraphSearch.prototype.search = function search(){
 		this.fringe.add(state);
 	    }
 
-	}else
-	    this.dups++;//debug
+	}//else
+	    //this.dups++;//debug
     }
 }
 
